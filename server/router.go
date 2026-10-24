@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"html/template"
 	"log"
@@ -36,8 +37,18 @@ func NewRouter(templateDir string) *mux.Router {
 			log.Println(err)
 			return
 		}
-		if err := t.Execute(w, products); err != nil {
-			log.Fatalln(err)
+		// Render into a buffer first so that template errors can be reported
+		// with a proper status code, and so that a failing client connection
+		// only affects this request.
+		var buf bytes.Buffer
+		if err := t.Execute(&buf, products); err != nil {
+			log.Println("could not execute the template:", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if _, err := buf.WriteTo(w); err != nil {
+			// The client most likely disconnected; never terminate the process.
+			log.Println("could not write the response:", err)
 		}
 	})
 
