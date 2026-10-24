@@ -66,7 +66,7 @@ type Product struct {
 }
 
 func GetProducts(ctx context.Context, db *sql.DB, category string) ([]Product, error) {
-	rows, err := db.QueryContext(ctx, "SELECT * FROM product WHERE category='"+category+"'")
+	rows, err := db.QueryContext(ctx, "SELECT id, name, category, price FROM product WHERE category = ?", category)
 	if err != nil {
 		return nil, err
 	}
