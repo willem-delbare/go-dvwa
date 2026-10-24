@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
@@ -41,10 +42,10 @@ func NewRouter(templateDir string) *mux.Router {
 		}
 	})
 
-	// /api/health vulnerable to shell injections
+	// /api/health runs a fixed command without a shell. Request parameters
+	// (including the legacy "extra" parameter) are never part of the command.
 	r.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		extra := r.FormValue("extra")
-		output, err := vulnerable.System(r.Context(), "ping -c1 sqreen.com"+extra)
+		output, err := exec.CommandContext(r.Context(), "ping", "-c1", "sqreen.com").CombinedOutput()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
